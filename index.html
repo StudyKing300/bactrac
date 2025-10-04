@@ -266,19 +266,23 @@ $('#themeToggle').addEventListener('click',()=>{state.theme=state.theme==='light
 function ethanolOz(ml,abvPct){return toOz(ml)*(abvPct/100);}
 function getR(){const s=$('#sex').value; if(s==='male')return 0.73; if(s==='female')return 0.66; return parseFloat($('#rCustom').value||'0.7');}
 function bacAt(tMs){
-  const W_lb=toLb(parseFloat($('#weight').value||state.profile.weight), $('#units').value);
-  const r=getR(); const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.005,0.03);
-  if(!W_lb||!r||state.drinks.length===0) return 0;
-  let total=0;
-  for(const d of state.drinks){
-    const A=ethanolOz(d.ml,d.abv);
-    const hours=(tMs-d.t)/3600000;
-    const peak=(A*5.14)/(W_lb*r);
-    const remaining=Math.max(0,peak-beta*Math.max(0,hours));
-    total+=remaining;
+  const W_lb = toLb(parseFloat($('#weight').value || state.profile.weight), $('#units').value);
+  const r = getR();
+  const beta = clamp(parseFloat($('#elimRate').value || state.profile.elimRate), 0.005, 0.03);
+  if (!W_lb || !r || state.drinks.length === 0) return 0;
+
+  let total = 0;
+  for (const d of state.drinks) {
+    if (tMs < d.t) continue; // <-- key fix: no contribution before the drink happens
+    const A = toOz(d.ml) * (d.abv / 100);
+    const hoursSince = (tMs - d.t) / 3600000;
+    const peak = (A * 5.14) / (W_lb * r);
+    const remaining = Math.max(0, peak - beta * hoursSince);
+    total += remaining;
   }
-  return Math.max(0,total);
+  return Math.max(0, total);
 }
+
 function zeroEtaFrom(nowMs,currentBAC){
   const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
   if(currentBAC<=0) return null;
