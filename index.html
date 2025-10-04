@@ -296,26 +296,53 @@ function resizeCanvas(){const rect=canvas.getBoundingClientRect(); canvas.width=
 window.addEventListener('resize',()=>{resizeCanvas(); drawChart();});
 
 function buildSeries(){
-  const now=Date.now();
-  const drinks=[...state.drinks].sort((a,b)=>a.t-b.t);
-  const earliest=drinks.length? Math.min(drinks[0].t, now-12*3600000) : now-6*3600000;
-  const spot=bacAt(now);
-  const eta=zeroEtaFrom(now, spot);
-  const end=eta? eta.getTime() : now+2*3600000;
+  const now = Date.now();
+  const drinks = [...state.drinks].sort((a,b)=>a.t-b.t);
 
-  const span=end-earliest;
-  const step= span<=24*3600000 ? 60000 : 300000;
-
-  const past=[], future=[];
-  for(let t=earliest;t<=now;t+=step) past.push([t, bacAt(t)]);
-  past.push([now, spot]);
-  if(eta){
-    const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
-    for(let t=now+step;t<=end;t+=step){const h=(t-now)/3600000; future.push([t, Math.max(0, spot-beta*h)]);}
-    future.push([end,0]);
+  // If no drinks, just show a flat zero at "now"
+  if (!drinks.length) {
+    const past = [[now, 0]];
+    return { past, future: [], earliest: now, end: now, spot: 0, eta: null };
   }
-  return {past,future,earliest,end,spot,eta};
+
+  // START EXACTLY AT THE FIRST DRINK
+  const earliest = drinks[0].t;
+
+  // Spot at "now"
+  const spot = bacAt(now);
+
+  // Project to zero from "now"
+  const eta = zeroEtaFrom(now, spot);
+  const end = eta ? eta.getTime() : now + 2*3600000;
+
+  // Resolution: 1 min for <= 24h span; otherwise 5 min
+  const span = end - earliest;
+  const step = span <= 24*3600000 ? 60000 : 300000;
+
+  const past = [], future = [];
+
+  // Only compute from first drink time up to now
+  for (let t = earliest; t <= now; t += step) {
+    past.push([t, bacAt(t)]);
+  }
+  // Ensure an exact "now" point
+  if (past.length === 0 || past[past.length-1][0] !== now) {
+    past.push([now, spot]);
+  }
+
+  // Linear projection to zero (no new orders)
+  if (eta) {
+    const beta = clamp(parseFloat($('#elimRate').value || state.profile.elimRate), 0.001, 1);
+    for (let t = now + step; t <= end; t += step) {
+      const h = (t - now) / 3600000;
+      future.push([t, Math.max(0, spot - beta * h)]);
+    }
+    future.push([end, 0]);
+  }
+
+  return { past, future, earliest, end, spot, eta };
 }
+
 
 function drawChart(){
   resizeCanvas();
