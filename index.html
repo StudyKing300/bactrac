@@ -3,58 +3,70 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>BAC Markets</title>
-<meta name="description" content="BAC price tracker" />
+<title>Forex Market</title>
+<meta name="description" content="USD/EUR trading dashboard" />
 <style>
   :root{
-    --bg:#0a0d14;--panel:#101521;--panel2:#0e1420;--border:#1b2232;--grid:#151b2a;
+    --bg:#0b0f17;--panel:#101522;--panel2:#0f1421;--border:#1b2436;--grid:#151b25;
     --text:#e9eef9;--muted:#8b93ad;--pos:#10d07a;--warn:#ffb86b;--neg:#ff6b6b;--accent:#5aa2ff;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     --radius:12px;
   }
+  [data-theme="light"]{
+    --bg:#f6f8ff;--panel:#ffffff;--panel2:#ffffff;--border:#dbe2f2;--grid:#eef2fb;
+    --text:#0c1230;--muted:#6a7390;--pos:#0e9b64;--warn:#b07a2e;--neg:#c24e4e;--accent:#2c6ae5;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1300px 700px at 20% -10%,#16203a 0%,#0b1120 50%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  body{margin:0;background:radial-gradient(1300px 700px at 20% -10%,#16203a 0%,var(--bg) 50%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:1160px;margin:0 auto;padding:16px}
   header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .brand{display:flex;gap:10px;align-items:center}
   .logo{width:28px;height:28px;border-radius:6px;background:linear-gradient(140deg,#2b7cff,#17d98b);filter:saturate(1.2)}
   h1{font-size:18px;margin:0}
   .top-actions{display:flex;gap:8px;align-items:center}
-  .btn,select,input{padding:10px 12px;background:#0c1220;color:var(--text);border:1px solid var(--border);border-radius:10px}
+  .btn,select,input{padding:10px 12px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px}
   .btn{cursor:pointer;transition:120ms transform ease,120ms background ease}
-  .btn:hover{transform:translateY(-1px);background:#111831}
-  .btn-primary{background:linear-gradient(180deg,#2c7be5,#1e5bd6);border-color:#1e5bd6}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:linear-gradient(180deg,#2c7be5,#1e5bd6);border-color:#1e5bd6;color:#fff}
   .grid{display:grid;gap:12px}
-  @media(min-width:960px){.grid{grid-template-columns:2fr 1fr}}
-  .card{background:linear-gradient(180deg,#11172a 0%,#0d1324 100%);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-  .ticker{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:10px}
-  .ticker .symbol{font-weight:700;letter-spacing:.5px}
+  @media(min-width:1040px){.grid{grid-template-columns:2fr 1fr}}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.10)}
+  .ticker{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+  .ticker .left{display:flex;gap:12px;align-items:center}
+  .symbol{font-weight:700;letter-spacing:.4px}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   .muted{color:var(--muted)}
-  .badge{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0b1222}
-  .badge.ok{color:var(--pos);border-color:#1e4232;background:#0c1915}
-  .badge.warn{color:var(--warn);border-color:#3f3723;background:#201c10}
-  .badge.danger{color:var(--neg);border-color:#47252a;background:#201014}
+  .badge{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel2)}
+  .badge.ok{color:var(--pos);border-color:#1e4232;background:rgba(16,208,122,.08)}
+  .badge.warn{color:var(--warn);border-color:#3f3723;background:rgba(255,184,107,.08)}
+  .badge.danger{color:var(--neg);border-color:#47252a;background:rgba(255,107,107,.08)}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row>*{flex:1 1 140px}
   .chart-wrap{position:relative;height:320px;background:var(--panel2);border:1px solid var(--border);border-radius:10px}
   canvas{display:block;width:100%;height:100%}
   .legend{position:absolute;top:8px;left:8px;display:flex;gap:8px}
-  .legend .k{padding:4px 8px;border-radius:999px;background:#0c1220;border:1px solid var(--border);font-size:12px}
+  .legend .k{padding:4px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--border);font-size:12px}
   .split{display:grid;gap:12px}
-  .ticket .label{font-size:12px;color:var(--muted);margin-bottom:6px}
-  .ticket .submit{width:100%}
+  .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .submit{width:100%}
   .table{width:100%;border-collapse:collapse}
   .table th,.table td{font-size:12px;border-bottom:1px solid var(--border);padding:8px 6px;text-align:left}
   .table th{color:var(--muted);font-weight:500}
-  .pill{font-size:11px;padding:4px 8px;border:1px solid var(--border);background:#0c1220;border-radius:999px;color:var(--muted)}
-  .danger-link{color:var(--neg);text-decoration:underline dotted;cursor:pointer}
+  .pill{font-size:11px;padding:4px 8px;border:1px solid var(--border);background:var(--panel2);border-radius:999px;color:var(--muted)}
   .nav{display:flex;gap:8px}
   .link{color:var(--accent);text-decoration:underline dotted;cursor:pointer}
-  footer{margin-top:10px;font-size:12px;color:var(--muted)}
-  /* pages */
   .page{display:none}
   .page.active{display:block}
+  .news{overflow:hidden;white-space:nowrap;position:relative;border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:6px 0;margin:10px 0}
+  .news span{display:inline-block;padding-left:100%;animation:scroll 30s linear infinite}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+  .lights{display:flex;gap:6px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .open{background:#10d07a}.closed{background:#c24e4e}
+  .orderbook{display:grid;gap:6px}
+  .lvl{display:flex;align-items:center;gap:8px}
+  .bar{height:8px;border-radius:6px;background:linear-gradient(90deg,rgba(90,162,255,.25),rgba(23,217,139,.25))}
+  .tiny{font-size:11px}
 </style>
 </head>
 <body>
@@ -63,24 +75,34 @@
     <div class="brand">
       <div class="logo"></div>
       <div>
-        <h1>BAC Markets</h1>
-        <div class="muted" style="font-size:12px">Simulated market • Do not use for safety decisions</div>
+        <h1>Forex Market</h1>
+        <div class="muted" style="font-size:12px">USD/EUR • Live</div>
       </div>
     </div>
     <div class="top-actions">
+      <button id="themeToggle" class="btn">Theme</button>
       <button id="goDashboard" class="btn">Dashboard</button>
       <button id="goSettings" class="btn">⚙️ Settings</button>
     </div>
   </header>
 
+  <div class="news"><span class="tiny mono" id="newsStrip">• USD/EUR steady • Liquidity normal • Session open • Spreads tight • Macro data light •</span></div>
+
   <!-- DASHBOARD -->
   <section id="page-dashboard" class="page active">
     <div class="ticker">
-      <div class="symbol">BAC/USD</div>
-      <div class="row" style="gap:10px; align-items:center; width:auto">
+      <div class="left">
+        <div class="symbol">USD/EUR</div>
         <div id="priceBadge" class="badge ok"><span>Last:</span><span class="mono" id="lastBAC">0.000</span></div>
-        <div class="badge"><span>Zero ETA:</span><span class="mono" id="etaZero">–</span></div>
+        <div class="badge"><span>Proj. Zero:</span><span class="mono" id="etaZero">–</span></div>
+        <div class="badge"><span>24h High:</span><span class="mono" id="hi24">0.000</span></div>
+        <div class="badge"><span>24h Low:</span><span class="mono" id="lo24">0.000</span></div>
         <div class="badge"><span>Updated:</span><span class="mono" id="lastTick">–</span></div>
+      </div>
+      <div class="row" style="gap:10px;align-items:center;width:auto">
+        <div class="badge"><span>Portfolio:</span><span class="mono" id="portfolio">$0.00</span></div>
+        <div class="badge"><span>P&amp;L:</span><span class="mono" id="pnl">+$0.00</span></div>
+        <div class="lights"><div class="dot open" id="mktLight"></div><span class="tiny muted" id="mktText">Open</span></div>
       </div>
     </div>
 
@@ -89,65 +111,75 @@
         <div class="chart-wrap">
           <canvas id="chart"></canvas>
           <div class="legend">
-            <div class="k">Spot BAC</div>
+            <div class="k">Spot</div>
             <div class="k">Projection</div>
           </div>
         </div>
       </div>
 
       <div class="split">
-        <div class="card ticket">
+        <div class="card">
           <div class="row">
             <div>
               <div class="label">Symbol</div>
-              <select id="symbol"><option value="BACUSD">BACUSD</option></select>
+              <select id="symbol"><option value="USDEUR">USD/EUR</option></select>
             </div>
             <div>
               <div class="label">Order Type</div>
               <select id="otype"><option>Market</option></select>
             </div>
           </div>
+
           <div class="row">
             <div>
-              <div class="label">Amount (ml)</div>
-              <input type="number" id="amount" min="1" step="1" placeholder="e.g. 355" />
+              <div class="label">Amount</div>
+              <input type="number" id="amount" min="1" step="1" />
             </div>
             <div>
-              <div class="label">Leverage (ABV %)</div>
-              <input type="number" id="lev" min="0" max="100" step="0.1" placeholder="e.g. 5" />
+              <div class="label">Leverage</div>
+              <input type="number" id="lev" min="0" max="100" step="0.1" />
             </div>
           </div>
+
           <details style="margin:6px 0">
-            <summary class="link">Advanced: Fill time</summary>
+            <summary class="link">Advanced</summary>
             <div class="row" style="margin-top:6px">
               <div>
-                <div class="label">Fill at</div>
+                <div class="label">Fill time</div>
                 <input type="datetime-local" id="orderTime" />
               </div>
             </div>
           </details>
-          <button id="buyBtn" class="btn-primary submit">Buy Shares</button>
-          <div class="muted" style="font-size:12px;margin-top:8px">
-            “Buy Shares” = add a drink. Amount=ml, Leverage=ABV%.
+
+          <div class="row" style="margin-top:6px">
+            <button id="quick1" class="btn">Quick Buy • 550 @ 4.5</button>
+            <button id="quick2" class="btn">Quick Buy • 35.5 @ 37.5</button>
           </div>
+
+          <button id="buyBtn" class="btn-primary submit" style="margin-top:8px">Buy</button>
+          <div class="tiny muted" style="margin-top:6px">Shortcuts: [1] Quick 550×4.5 • [2] Quick 35.5×37.5 • [Enter] Buy</div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="align-items:center;justify-content:space-between;width:100%">
+            <div class="muted">Order Book</div>
+            <div class="tiny muted">Lvl II</div>
+          </div>
+          <div class="orderbook" id="orderBook"></div>
         </div>
 
         <div class="card">
           <div class="row" style="align-items:center; justify-content:space-between; width:100%">
             <div class="muted">Order History</div>
-            <div class="danger-link" id="clearDrinks">Clear</div>
+            <div class="link tiny" id="clearDrinks">Clear</div>
           </div>
           <table class="table" id="orders">
-            <thead><tr><th>Time</th><th>Amount</th><th>Lev</th><th>EtOH (oz)</th><th></th></tr></thead>
+            <thead><tr><th>Time</th><th>Amount</th><th>Lev</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
     </div>
-
-    <footer>
-      Estimate only. Do not use to determine whether you are safe or legal to drive or operate machinery.
-    </footer>
   </section>
 
   <!-- SETTINGS -->
@@ -175,7 +207,7 @@
         </div>
         <div class="row">
           <div>
-            <div class="label">Elimination rate (%BAC per hour)</div>
+            <div class="label">Elimination rate (% per hour)</div>
             <input type="number" id="elimRate" min="0.005" max="0.03" step="0.001" />
           </div>
           <div>
@@ -190,12 +222,9 @@
       </div>
 
       <div class="card">
-        <h3 style="margin:0 0 8px 0">How the estimate works</h3>
+        <h3 style="margin:0 0 8px 0">How it works</h3>
         <p class="muted" style="font-size:14px">
-          Widmark: <span class="mono">BAC = Σ( A·5.14 / (W_lb · r) ) − β · hours</span>, where
-          A is ounces of pure ethanol per drink, W_lb is body weight in pounds,
-          r≈0.73 (male) or 0.66 (female) unless customized, and β is elimination
-          (default 0.015 %BAC/hour). Floor at 0. Projection assumes no new drinks.
+          Uses a standard elimination model under the hood. Settings page only.
         </p>
       </div>
     </div>
@@ -205,40 +234,37 @@
 <script>
 /* ===================== Utilities & State ===================== */
 const $ = s => document.querySelector(s);
-const nowLocalISO = () => {
-  const d = new Date(); const off = d.getTimezoneOffset();
-  return new Date(d.getTime()-off*60000).toISOString().slice(0,16);
-};
-const toLb = (w,u)=> u==='kg'? w*2.2046226218 : w;
-const toOz = ml => ml/29.5735;
+const nowLocalISO = () => {const d=new Date(); const off=d.getTimezoneOffset(); return new Date(d.getTime()-off*60000).toISOString().slice(0,16);};
+const toLb=(w,u)=>u==='kg'?w*2.2046226218:w;
+const toOz=ml=>ml/29.5735;
 const clamp=(x,a,b)=>Math.min(Math.max(x,a),b);
 const fmt=(x,d=3)=>Number(x).toFixed(d);
+const money=(x)=> (x<0?'-':'')+'$'+Math.abs(x).toFixed(2);
 
-const storeKey='bac.app.v2';
+const storeKey='fx.app.v1';
 const store={load(){try{return JSON.parse(localStorage.getItem(storeKey)||'{}')}catch{return{}}},save(s){localStorage.setItem(storeKey,JSON.stringify(s))}};
 
 let state={
   profile:{weight:75,units:'kg',sex:'male',rCustom:0.70,elimRate:0.015,clockPref:'local'},
   drinks:[], // {t, ml, abv, id}
+  theme:'dark',
+  sessionBase:null // base spot at session start for P&L
 };
 
-/* ===================== Navigation ===================== */
-function showPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  $(id).classList.add('active');
-}
+/* ===================== Navigation & Theme ===================== */
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active');}
 $('#goSettings').addEventListener('click',()=>showPage('#page-settings'));
 $('#goDashboard').addEventListener('click',()=>showPage('#page-dashboard'));
 
-/* ===================== Core Math ===================== */
-function ethanolOz(ml,abvPct){return toOz(ml)*(abvPct/100);}
-function getR(){
-  const s=$('#sex').value;
-  if(s==='male')return 0.73;
-  if(s==='female')return 0.66;
-  return parseFloat($('#rCustom').value||'0.7');
+function applyTheme(){
+  if(state.theme==='light') document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.removeAttribute('data-theme');
 }
-// BAC at arbitrary time tMs
+$('#themeToggle').addEventListener('click',()=>{state.theme=state.theme==='light'?'dark':'light'; applyTheme(); store.save(state);});
+
+/* ===================== Core Math (hidden model) ===================== */
+function ethanolOz(ml,abvPct){return toOz(ml)*(abvPct/100);}
+function getR(){const s=$('#sex').value; if(s==='male')return 0.73; if(s==='female')return 0.66; return parseFloat($('#rCustom').value||'0.7');}
 function bacAt(tMs){
   const W_lb=toLb(parseFloat($('#weight').value||state.profile.weight), $('#units').value);
   const r=getR(); const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.005,0.03);
@@ -253,7 +279,7 @@ function bacAt(tMs){
   }
   return Math.max(0,total);
 }
-function zeroEtaFrom(nowMs, currentBAC){
+function zeroEtaFrom(nowMs,currentBAC){
   const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
   if(currentBAC<=0) return null;
   const hours=currentBAC/beta;
@@ -261,199 +287,188 @@ function zeroEtaFrom(nowMs, currentBAC){
 }
 
 /* ===================== Chart ===================== */
-const canvas = $('#chart');
-const ctx = canvas.getContext('2d');
-let dpr = window.devicePixelRatio || 1;
-
-function resizeCanvas(){
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.floor(rect.width * dpr);
-  canvas.height = Math.floor(rect.height * dpr);
-}
+const canvas=$('#chart'); const ctx=canvas.getContext('2d'); let dpr=window.devicePixelRatio||1;
+function resizeCanvas(){const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr);}
 window.addEventListener('resize',()=>{resizeCanvas(); drawChart();});
 
 function buildSeries(){
-  const now = Date.now();
-  const drinks = [...state.drinks].sort((a,b)=>a.t-b.t);
-  const earliest = drinks.length? Math.min(drinks[0].t, now-12*3600000) : now-6*3600000; // last 6–12h window
-  const spot = bacAt(now);
+  const now=Date.now();
+  const drinks=[...state.drinks].sort((a,b)=>a.t-b.t);
+  const earliest=drinks.length? Math.min(drinks[0].t, now-12*3600000) : now-6*3600000;
+  const spot=bacAt(now);
+  const eta=zeroEtaFrom(now, spot);
+  const end=eta? eta.getTime() : now+2*3600000;
 
-  // projection to zero
-  const eta = zeroEtaFrom(now, spot);
-  const end = eta ? eta.getTime() : now + 2*3600000;
-
-  // resolution: 1 min for <= 24h span, else 5 min
-  const span = end - earliest;
-  const step = span <= 24*3600000 ? 60000 : 300000;
+  const span=end-earliest;
+  const step= span<=24*3600000 ? 60000 : 300000;
 
   const past=[], future=[];
-  for(let t=earliest; t<=now; t+=step){ past.push([t, bacAt(t)]); }
-  // ensure last now point
+  for(let t=earliest;t<=now;t+=step) past.push([t, bacAt(t)]);
   past.push([now, spot]);
   if(eta){
-    // linear projection using beta (faster)
-    const beta = clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
-    for(let t=now+step;t<=end;t+=step){
-      const h=(t-now)/3600000;
-      future.push([t, Math.max(0, spot - beta*h)]);
-    }
+    const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
+    for(let t=now+step;t<=end;t+=step){const h=(t-now)/3600000; future.push([t, Math.max(0, spot-beta*h)]);}
     future.push([end,0]);
   }
-  return {past, future, earliest, end, spot, eta};
+  return {past,future,earliest,end,spot,eta};
 }
 
 function drawChart(){
   resizeCanvas();
-  const {width:w, height:h} = canvas;
+  const {width:w,height:h}=canvas;
   ctx.clearRect(0,0,w,h);
 
-  const data = buildSeries();
-  const all = data.future.length? data.past.concat(data.future): data.past;
-  const xs = all.map(p=>p[0]);
-  const ys = all.map(p=>p[1]);
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const maxY = Math.max(0.08, ...ys, 0.001); // give headroom, at least 0.08
+  const data=buildSeries();
+  const all=data.future.length? data.past.concat(data.future): data.past;
+  const xs=all.map(p=>p[0]); const ys=all.map(p=>p[1]);
+  const minX=Math.min(...xs), maxX=Math.max(...xs);
+  const maxY=Math.max(0.08, ...ys, 0.001);
   const padL=48*dpr, padR=16*dpr, padT=12*dpr, padB=28*dpr;
-
-  const X = t => padL + ( (t-minX)/(maxX-minX||1) ) * (w-padL-padR);
-  const Y = v => (h-padB) - ( (v/(maxY||1)) * (h-padT-padB) );
+  const X=t=> padL + ((t-minX)/(maxX-minX||1))*(w-padL-padR);
+  const Y=v=> (h-padB) - ((v/(maxY||1))*(h-padT-padB));
 
   // grid
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid') || '#151b2a';
-  ctx.lineWidth = 1*dpr;
-  ctx.beginPath();
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--grid')||'#151b25';
+  ctx.lineWidth=1*dpr; ctx.beginPath();
   const gridLines=5;
-  for(let i=0;i<=gridLines;i++){
-    const y = padT + i*( (h-padT-padB)/gridLines );
-    ctx.moveTo(padL, y); ctx.lineTo(w-padR, y);
-  }
+  for(let i=0;i<=gridLines;i++){const y=padT+i*((h-padT-padB)/gridLines); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y);}
   ctx.stroke();
 
-  // axes labels
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#8b93ad';
-  ctx.font = `${11*dpr}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')||'monospace'}`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  for(let i=0;i<=gridLines;i++){
-    const v = (maxY/gridLines)*(gridLines-i);
-    const y = padT + i*( (h-padT-padB)/gridLines );
-    ctx.fillText(v.toFixed(3), padL-6*dpr, y);
-  }
+  // y labels
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted')||'#8b93ad';
+  ctx.font=`${11*dpr}px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')||'monospace'}`;
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let i=0;i<=gridLines;i++){const v=(maxY/gridLines)*(gridLines-i); const y=padT+i*((h-padT-padB)/gridLines); ctx.fillText(v.toFixed(3), padL-6*dpr, y);}
 
-  // time labels (3 ticks)
+  // time labels
   ctx.textAlign='center'; ctx.textBaseline='top';
   const times=[minX, (minX+maxX)/2, maxX];
-  times.forEach(t=>{
-    const d=new Date(t);
-    const label = $('#clockPref').value==='utc'
-      ? d.toISOString().slice(11,16)+'Z'
-      : d.toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit'});
-    ctx.fillText(label, X(t), h-padB+6*dpr);
-  });
+  times.forEach(t=>{const d=new Date(t); const label=$('#clockPref').value==='utc'? d.toISOString().slice(11,16)+'Z' : d.toLocaleTimeString([], {hour12:false,hour:'2-digit',minute:'2-digit'}); ctx.fillText(label, X(t), h-padB+6*dpr);});
 
   // past line
-  ctx.lineWidth = 2*dpr;
-  ctx.strokeStyle = '#5aa2ff';
-  ctx.setLineDash([]);
-  ctx.beginPath();
-  data.past.forEach((p,i)=>{ const x=X(p[0]), y=Y(p[1]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
-  ctx.stroke();
+  ctx.lineWidth=2*dpr; ctx.strokeStyle='#5aa2ff'; ctx.setLineDash([]); ctx.beginPath();
+  data.past.forEach((p,i)=>{const x=X(p[0]), y=Y(p[1]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
 
-  // projection line (dashed)
+  // projection
   if(data.future.length){
-    ctx.strokeStyle = '#10d07a';
-    ctx.setLineDash([6*dpr,6*dpr]);
-    ctx.beginPath();
-    // connect from spot
-    const x0 = X(data.past[data.past.length-1][0]), y0=Y(data.past[data.past.length-1][1]);
-    ctx.moveTo(x0,y0);
-    data.future.forEach(p=>{ctx.lineTo(X(p[0]), Y(p[1]));});
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.strokeStyle='#10d07a'; ctx.setLineDash([6*dpr,6*dpr]); ctx.beginPath();
+    const last=data.past[data.past.length-1]; ctx.moveTo(X(last[0]), Y(last[1]));
+    data.future.forEach(p=>ctx.lineTo(X(p[0]), Y(p[1]))); ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // threshold band for 0.08 (visual only)
-  const yThresh = Y(0.08);
-  ctx.fillStyle = 'rgba(255,107,107,0.08)';
-  ctx.fillRect(padL, yThresh, w-padL-padR, (h-padB)-yThresh);
+  // threshold visual band (0.08)
+  const yThresh=Y(0.08); ctx.fillStyle='rgba(255,107,107,0.06)'; ctx.fillRect(padL,yThresh,w-padL-padR,(h-padB)-yThresh);
 
-  // spot marker
-  const last = data.past[data.past.length-1];
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(X(last[0]), Y(last[1]), 3.5*dpr, 0, Math.PI*2);
-  ctx.fill();
+  // marker
+  const last=data.past[data.past.length-1]; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(X(last[0]), Y(last[1]), 3.5*dpr, 0, Math.PI*2); ctx.fill();
+
+  // update 24h stats
+  const cutoff=Date.now()-24*3600000;
+  const within=all.filter(([t])=>t>=cutoff).map(([,y])=>y);
+  const hi=Math.max(...within,0); const lo=Math.min(...within,0);
+  $('#hi24').textContent=fmt(hi); $('#lo24').textContent=fmt(lo);
 }
 
 /* ===================== Orders / UI ===================== */
 function renderOrders(){
-  const tbody = $('#orders tbody'); tbody.innerHTML='';
-  const rows = [...state.drinks].sort((a,b)=>b.t-a.t);
-  if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="5" class="muted">No orders.</td></tr>`;
-    return;
-  }
+  const tbody=$('#orders tbody'); tbody.innerHTML='';
+  const rows=[...state.drinks].sort((a,b)=>b.t-a.t);
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="4" class="muted">No orders.</td></tr>`; return;}
   rows.forEach(d=>{
-    const tr = document.createElement('tr');
-    const when = new Date(d.t);
-    const timeStr = $('#clockPref').value==='utc'
-      ? when.toISOString().replace('T',' ').slice(0,16)+'Z'
-      : when.toLocaleString([], {hour12:false});
-    tr.innerHTML = `
+    const tr=document.createElement('tr');
+    const when=new Date(d.t);
+    const timeStr=$('#clockPref').value==='utc'? when.toISOString().replace('T',' ').slice(0,16)+'Z' : when.toLocaleString([], {hour12:false});
+    tr.innerHTML=`
       <td class="mono">${timeStr}</td>
-      <td>${Math.round(d.ml)} ml</td>
-      <td>${Number(d.abv).toFixed(1)}%</td>
-      <td class="mono">${ethanolOz(d.ml,d.abv).toFixed(2)}</td>
-      <td><button class="btn" data-id="${d.id}" title="Cancel">✕</button></td>
+      <td>${Number(d.ml).toFixed(1)}</td>
+      <td>${Number(d.abv).toFixed(1)}</td>
+      <td><button class="btn tiny" data-id="${d.id}" title="Cancel">✕</button></td>
     `;
-    tr.querySelector('button').addEventListener('click',()=>{
-      state.drinks = state.drinks.filter(x=>x.id!==d.id);
-      store.save(state); renderOrders(); tick(); drawChart();
-    });
+    tr.querySelector('button').addEventListener('click',()=>{state.drinks=state.drinks.filter(x=>x.id!==d.id); store.save(state); renderOrders(); tick(); drawChart();});
     tbody.appendChild(tr);
   });
 }
 
 function setBadges(){
   const now=Date.now();
-  const bac = bacAt(now);
-  $('#lastBAC').textContent = fmt(bac,3);
-  const pb = $('#priceBadge'); pb.classList.remove('ok','warn','danger');
-  if (bac < 0.03) pb.classList.add('ok');
-  else if (bac < 0.08) pb.classList.add('warn');
-  else pb.classList.add('danger');
+  const price=bacAt(now);
+  $('#lastBAC').textContent=fmt(price,3);
 
-  const eta = zeroEtaFrom(now, bac);
-  $('#etaZero').textContent = eta
-    ? ($('#clockPref').value==='utc'
-        ? eta.toISOString().replace('T',' ').slice(0,16)+'Z'
-        : eta.toLocaleString([], {hour12:false}))
-    : '–';
-  $('#lastTick').textContent = new Date().toLocaleTimeString([], {hour12:false});
+  const pb=$('#priceBadge'); pb.classList.remove('ok','warn','danger');
+  if(price<0.03) pb.classList.add('ok'); else if(price<0.08) pb.classList.add('warn'); else pb.classList.add('danger');
+
+  const eta=zeroEtaFrom(now, price);
+  $('#etaZero').textContent= eta ? ($('#clockPref').value==='utc' ? eta.toISOString().replace('T',' ').slice(0,16)+'Z' : eta.toLocaleString([], {hour12:false})) : '–';
+  $('#lastTick').textContent=new Date().toLocaleTimeString([], {hour12:false});
+
+  // portfolio & PnL
+  if(state.sessionBase==null) state.sessionBase=price;
+  const balance=price*1000;
+  const pnl=(price-state.sessionBase)*1000;
+  $('#portfolio').textContent=money(balance);
+  $('#pnl').textContent=(pnl>=0?'+':'')+money(pnl).replace('-', '');
+
+  // fake market light (blinks when price>0 or odd seconds)
+  const open = true;
+  $('#mktLight').className='dot '+(open?'open':'closed');
+  $('#mktText').textContent=open?'Open':'Closed';
+}
+
+/* ===================== Order Book (decor) ===================== */
+function rebuildOrderBook(){
+  const ob=$('#orderBook'); ob.innerHTML='';
+  const spot=parseFloat($('#lastBAC').textContent)||0;
+  const levels=8;
+  for(let i=levels;i>=1;i--){
+    const price=(spot+(i*0.001));
+    const size=Math.floor(50+Math.random()*250);
+    const row=document.createElement('div'); row.className='lvl';
+    const bar=document.createElement('div'); bar.className='bar'; bar.style.width=(size/300*100)+'%';
+    row.innerHTML=`<span class="tiny mono">${price.toFixed(3)}</span>`;
+    row.appendChild(bar); ob.appendChild(row);
+  }
+  for(let i=1;i<=levels;i++){
+    const price=(spot-(i*0.001));
+    const size=Math.floor(50+Math.random()*250);
+    const row=document.createElement('div'); row.className='lvl';
+    const bar=document.createElement('div'); bar.className='bar'; bar.style.width=(size/300*100)+'%';
+    row.innerHTML=`<span class="tiny mono">${price.toFixed(3)}</span>`;
+    row.appendChild(bar); ob.appendChild(row);
+  }
 }
 
 /* ===================== Events ===================== */
 function wire(){
-  // settings visibility for custom r
-  $('#sex').addEventListener('change',()=>{$('#rWrap').style.display = $('#sex').value==='custom' ? 'block':'none';});
+  // custom r visibility
+  $('#sex').addEventListener('change',()=>{$('#rWrap').style.display=$('#sex').value==='custom'?'block':'none';});
 
   // buy
-  $('#buyBtn').addEventListener('click',()=>{
-    const ml = parseFloat($('#amount').value||'0');
-    const abv = clamp(parseFloat($('#lev').value||'0'),0,100);
-    const tStr = $('#orderTime').value;
-    const t = tStr ? new Date(tStr).getTime() : Date.now();
-    if(!ml || !abv) return;
-    state.drinks.push({ t, ml, abv, id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()) });
+  function place(ml,abv,t){
+    if(!ml||!abv) return;
+    state.drinks.push({t,ml,abv,id:crypto.randomUUID?crypto.randomUUID():String(Math.random())});
     store.save(state);
+    renderOrders(); tick(); drawChart(); rebuildOrderBook(); blip();
+  }
+  $('#buyBtn').addEventListener('click',()=>{
+    const ml=parseFloat($('#amount').value||'0');
+    const abv=clamp(parseFloat($('#lev').value||'0'),0,100);
+    const tStr=$('#orderTime').value; const t=tStr? new Date(tStr).getTime() : Date.now();
+    place(ml,abv,t);
     $('#amount').value=''; $('#lev').value=''; $('#orderTime').value='';
-    renderOrders(); tick(); drawChart();
   });
 
-  $('#clearDrinks').addEventListener('click',()=>{
-    if(!confirm('Clear all orders?'))return;
-    state.drinks=[]; store.save(state); renderOrders(); tick(); drawChart();
+  // quick orders
+  $('#quick1').addEventListener('click',()=>place(550,4.5,Date.now()));
+  $('#quick2').addEventListener('click',()=>place(35.5,37.5,Date.now()));
+
+  // keyboard shortcuts
+  window.addEventListener('keydown',(e)=>{
+    if(e.key==='1'){e.preventDefault(); $('#quick1').click();}
+    if(e.key==='2'){e.preventDefault(); $('#quick2').click();}
+    if(e.key==='Enter'){const a=$('#amount'), l=$('#lev'); if(document.activeElement===a||document.activeElement===l){e.preventDefault(); $('#buyBtn').click();}}
   });
+
+  $('#clearDrinks').addEventListener('click',()=>{if(!confirm('Clear all orders?'))return; state.drinks=[]; store.save(state); renderOrders(); tick(); drawChart(); rebuildOrderBook();});
 
   $('#saveProfile').addEventListener('click',()=>{
     state.profile.weight=parseFloat($('#weight').value||'75');
@@ -463,48 +478,54 @@ function wire(){
     state.profile.elimRate=clamp(parseFloat($('#elimRate').value||'0.015'),0.005,0.03);
     state.profile.clockPref=$('#clockPref').value;
     store.save(state);
-    tick(); drawChart(); renderOrders();
     alert('Profile saved');
+    tick(); drawChart(); renderOrders(); rebuildOrderBook();
   });
+}
+
+/* tiny trade sound */
+let audioCtx=null;
+function blip(){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='triangle'; o.frequency.value=660; g.gain.value=0.05;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); setTimeout(()=>{o.stop();},100);
+  }catch{}
 }
 
 /* ===================== Timer ===================== */
 let timer=null;
-function tick(){
-  setBadges();
-}
-function startTicker(){
-  if(timer) clearInterval(timer);
-  timer = setInterval(()=>{tick(); drawChart();}, 1000);
-}
+function tick(){ setBadges(); }
+function startTicker(){ if(timer) clearInterval(timer); timer=setInterval(()=>{tick(); drawChart(); rebuildOrderBook();}, 1000); }
 
-/* ===================== Init ===================== */
+/* ===================== Hydrate ===================== */
 function hydrate(){
-  const saved = store.load();
-  state = { ...state, ...saved, profile:{...state.profile, ...(saved.profile||{})} };
+  const saved=store.load();
+  state={...state, ...saved, profile:{...state.profile, ...(saved.profile||{})}};
+  // apply theme
+  applyTheme();
 
-  // hydrate settings inputs
-  $('#weight').value = state.profile.weight;
-  $('#units').value = state.profile.units;
-  $('#sex').value = state.profile.sex;
-  $('#rCustom').value = state.profile.rCustom;
-  $('#elimRate').value = state.profile.elimRate;
-  $('#clockPref').value = state.profile.clockPref;
-  $('#rWrap').style.display = $('#sex').value==='custom' ? 'block':'none';
+  // settings inputs
+  $('#weight').value=state.profile.weight;
+  $('#units').value=state.profile.units;
+  $('#sex').value=state.profile.sex;
+  $('#rCustom').value=state.profile.rCustom;
+  $('#elimRate').value=state.profile.elimRate;
+  $('#clockPref').value=state.profile.clockPref;
+  $('#rWrap').style.display=$('#sex').value==='custom'?'block':'none';
 
-  // ticket time default
-  $('#orderTime').value = nowLocalISO();
+  // ticket defaults
+  $('#orderTime').value=nowLocalISO();
 
-  renderOrders();
-  drawChart();
-  tick();
+  // session base
+  if(state.sessionBase==null){ state.sessionBase=bacAt(Date.now()); }
+
+  renderOrders(); drawChart(); tick(); rebuildOrderBook();
 }
 
-window.addEventListener('load',()=>{
-  hydrate();
-  wire();
-  startTicker();
-});
+window.addEventListener('load',()=>{hydrate(); wire(); startTicker();});
 </script>
 </body>
 </html>
