@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Intake</title>
+  <meta name="description" content="Simple daily intake log" />
+  <style>
+    :root {
+      --bg: #0f1220;
+      --card: #171a2b;
+      --muted: #8b91aa;
+      --text: #e7e9f3;
+      --accent: #7bd389;
+      --accent2: #6ea8ff;
+      --warn: #ffb86b;
+      --danger: #ff6b6b;
+      --border: #262a40;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: radial-gradient(1200px 600px at 30% -20%, #1b2040 0%, var(--bg) 50%), var(--bg);
+      color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 20px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px;
+    }
+    h1 { font-size: 20px; margin: 0; letter-spacing: 0.3px; color: #f2f4ff; }
+    .cards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 860px) { .cards { grid-template-columns: 1.2fr 1fr; } }
+    .card {
+      background: linear-gradient(180deg, #1a1e33 0%, var(--card) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row>* { flex: 1 1 140px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      background: #111528;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+    }
+    input::placeholder { color: #6d7390; }
+    button {
+      cursor: pointer; background: #12162a; border: 1px solid #2a3050;
+      transition: 120ms transform ease, 120ms background ease, 120ms border ease;
+    }
+    button:hover { transform: translateY(-1px); background: #171c35; }
+    .btn-primary { background: linear-gradient(180deg, #2c7be5, #1e5bd6); border-color: #1e5bd6; }
+    .btn-ghost { background: transparent; border-color: #2a3050; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .mono { font-family: var(--mono); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 999px; background: #10142a; border: 1px solid #2a3050;
+      font-variant-numeric: tabular-nums; font-family: var(--mono);
+    }
+    .badge.ok { color: var(--accent); border-color: #284a3a; background: #102018; }
+    .badge.warn { color: var(--warn); border-color: #4a3e28; background: #201a10; }
+    .badge.danger { color: var(--danger); border-color: #4a2828; background: #201010; }
+    .stack { display: grid; gap: 10px; }
+    .drink-list { display: grid; gap: 10px; max-height: 260px; overflow-y: auto; padding-right: 6px; }
+    .drink-item {
+      display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+      padding: 10px; border: 1px dashed #2a3050; border-radius: 10px; background: #111528;
+    }
+    .pill { font-size: 12px; padding: 4px 8px; border: 1px solid #2a3050; border-radius: 999px; color: var(--muted); }
+    .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .small { font-size: 12px; }
+    .right { text-align: right; }
+    .danger-link { color: var(--danger); text-decoration: underline dotted; cursor: pointer; }
+    .divider { height: 1px; background: #262a40; margin: 12px 0; }
+    .footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
+    .hidden { filter: blur(6px); transition: 120ms filter ease; }
+    .toggle-eye { cursor: pointer; font-size: 12px; color: var(--muted); text-decoration: underline dotted; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Daily Intake</h1>
+      <div class="row" style="gap:8px; width:auto; align-items:center;">
+        <button id="toggleDisguise" class="btn-ghost" style="width:auto; padding:8px 12px;">Reveal Details</button>
+        <button id="exportBtn" class="btn-ghost" style="width:auto; padding:8px 12px;">Export JSON</button>
+        <button id="resetAll" class="btn-ghost" style="width:auto; padding:8px 12px; color:#ff6b6b;">Reset</button>
+      </div>
+    </header>
+
+    <div class="cards">
+      <section class="card">
+        <div class="flex-between">
+          <div>
+            <div class="muted small">Status</div>
+            <div id="statusBadge" class="badge ok">
+              <span>Estimated BAC:</span> <strong class="mono" id="bacText">0.000</strong>
+            </div>
+          </div>
+          <div class="right small">
+            <div><span class="muted">Last update:</span> <span class="mono" id="lastTick">–</span></div>
+            <div><span class="muted">Zero ETA:</span> <span class="mono" id="etaZero">–</span></div>
+            <div class="toggle-eye" id="toggleBlur">Hide number</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div>
+            <label>Body weight</label>
+            <input type="number" id="weight" placeholder="e.g. 75" min="30" step="0.1" />
+          </div>
+          <div>
+            <label>Units</label>
+            <select id="units">
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
+          <div>
+            <label>Sex at birth (Widmark r)</label>
+            <select id="sex">
+              <option value="male">Male (r≈0.73)</option>
+              <option value="female">Female (r≈0.66)</option>
+              <option value="custom">Custom r</option>
+            </select>
+          </div>
+          <div id="rWrap" style="display:none;">
+            <label>Custom r</label>
+            <input type="number" id="rCustom" min="0.4" max="0.9" step="0.01" value="0.70" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Elimination rate (%BAC per hour)</label>
+            <input type="number" id="elimRate" min="0.005" max="0.03" step="0.001" value="0.015" />
+          </div>
+          <div>
+            <label>Clock</label>
+            <select id="clockPref">
+              <option value="local">Local time</option>
+              <option value="utc">UTC</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="saveProfile" class="btn-primary">Save Profile</button>
+          </div>
+        </div>
+
+        <p class="footer">
+          This tool is an estimate only. Do not use it to determine whether you are safe or legal to drive or operate machinery.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="stack">
+          <div class="row">
+            <div>
+              <label>Preset</label>
+              <select id="preset">
+                <option value="beer">Beer (12 oz / 355 ml @ 5%)</option>
+                <option value="wine">Wine (5 oz / 148 ml @ 12%)</option>
+                <option value="shot">Shot (1.5 oz / 44 ml @ 40%)</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label>Volume</label>
+              <input type="number" id="vol" min="1" step="1" value="355" />
+            </div>
+            <div>
+              <label>Units</label>
+              <select id="volUnits">
+                <option value="ml">ml</option>
+                <option value="oz">oz (US fl)</option>
+              </select>
+            </div>
+            <div>
+              <label>ABV (%)</label>
+              <input type="number" id="abv" min="0" max="100" step="0.1" value="5" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Time</label>
+              <input type="datetime-local" id="time" />
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button id="addDrink" class="btn-primary">Add Intake</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flex-between">
+          <div class="muted">Intake log</div>
+          <div class="small"><span class="danger-link" id="clearDrinks">Clear log</span></div>
+        </div>
+        <div id="drinkList" class="drink-list"></div>
+      </section>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <details>
+        <summary style="cursor:pointer;">How the estimate works</summary>
+        <p class="small muted">
+          Uses Widmark's formula: <span class="mono">BAC = Σ( A·5.14 / (W_lb · r) ) − β · hours</span>,
+          where A is ounces of pure ethanol in each drink, W_lb is body weight in pounds, r≈0.73 (male) or 0.66 (female) by default,
+          and β is your elimination rate (default 0.015 %BAC/hour). Values are floored at 0.
+        </p>
+      </details>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = s => document.querySelector(s);
+    const nowLocalISO = () => {
+      const d = new Date();
+      const off = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - off*60000);
+      return local.toISOString().slice(0,16);
+    };
+    const toLb = (w, units) => units === 'kg' ? w * 2.2046226218 : w;
+    const toMl = (v, u) => u === 'oz' ? v * 29.5735 : v;
+    const toOz = ml => ml / 29.5735;
+    const clamp = (x, lo, hi) => Math.min(Math.max(x, lo), hi);
+    const fmt = (x, d=3) => Number(x).toFixed(d);
+    const store = {
+      load() {
+        try { return JSON.parse(localStorage.getItem('bac.app.v1') || '{}'); } catch { return {}; }
+      },
+      save(state) { localStorage.setItem('bac.app.v1', JSON.stringify(state)); }
+    };
+
+    // ---------- State ----------
+    let state = {
+      profile: {
+        weight: 75,
+        units: 'kg',
+        sex: 'male',
+        rCustom: 0.70,
+        elimRate: 0.015,
+        clockPref: 'local'
+      },
+      drinks: [], // [{t:ms, ml:number, abv:number, id:string}]
+      disguiseRevealed: false,
+      blur: false
+    };
+
+    // ---------- Init ----------
+    function init() {
+      const saved = store.load();
+      state = { ...state, ...saved, profile: { ...state.profile, ...(saved.profile || {}) } };
+
+      // hydrate form
+      $('#weight').value = state.profile.weight ?? 75;
+      $('#units').value = state.profile.units ?? 'kg';
+      $('#sex').value = state.profile.sex ?? 'male';
+      $('#rCustom').value = state.profile.rCustom ?? 0.70;
+      $('#elimRate').value = state.profile.elimRate ?? 0.015;
+      $('#clockPref').value = state.profile.clockPref ?? 'local';
+      $('#rWrap').style.display = $('#sex').value === 'custom' ? 'block' : 'none';
+
+      // defaults for drink editor
+      $('#time').value = nowLocalISO();
+
+      renderDrinks();
+      renderStatus();
+      wireEvents();
+      tick(); // immediate compute
+      startTicker();
+      applyDisguise();
+      applyBlur();
+    }
+
+    // ---------- Events ----------
+    function wireEvents() {
+      $('#sex').addEventListener('change', () => {
+        $('#rWrap').style.display = $('#sex').value === 'custom' ? 'block' : 'none';
+      });
+
+      $('#preset').addEventListener('change', () => {
+        const p = $('#preset').value;
+        if (p === 'beer') { $('#vol').value = 355; $('#volUnits').value='ml'; $('#abv').value=5; }
+        if (p === 'wine') { $('#vol').value = 148; $('#volUnits').value='ml'; $('#abv').value=12; }
+        if (p === 'shot') { $('#vol').value = 44; $('#volUnits').value='ml'; $('#abv').value=40; }
+        if (p === 'custom') { /* keep user fields */ }
+      });
+
+      $('#addDrink').addEventListener('click', () => {
+        const ml = toMl(parseFloat($('#vol').value || '0'), $('#volUnits').value);
+        const abv = clamp(parseFloat($('#abv').value || '0'), 0, 100);
+        const tStr = $('#time').value;
+        const t = tStr ? new Date(tStr).getTime() : Date.now();
+        if (!ml || !abv || !t) return;
+        state.drinks.push({ t, ml, abv, id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()) });
+        store.save(state);
+        renderDrinks();
+        tick();
+      });
+
+      $('#clearDrinks').addEventListener('click', () => {
+        if (!confirm('Clear the intake log?')) return;
+        state.drinks = [];
+        store.save(state);
+        renderDrinks();
+        tick();
+      });
+
+      $('#saveProfile').addEventListener('click', () => {
+        state.profile.weight = parseFloat($('#weight').value || '75');
+        state.profile.units = $('#units').value;
+        state.profile.sex = $('#sex').value;
+        state.profile.rCustom = parseFloat($('#rCustom').value || '0.7');
+        state.profile.elimRate = clamp(parseFloat($('#elimRate').value || '0.015'), 0.005, 0.03);
+        state.profile.clockPref = $('#clockPref').value;
+        store.save(state);
+        tick();
+      });
+
+      $('#toggleDisguise').addEventListener('click', () => {
+        state.disguiseRevealed = !state.disguiseRevealed;
+        applyDisguise();
+        store.save(state);
+      });
+
+      $('#toggleBlur').addEventListener('click', () => {
+        state.blur = !state.blur;
+        applyBlur();
+        store.save(state);
+      });
+
+      $('#exportBtn').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `intake-${new Date().toISOString().slice(0,19)}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      $('#resetAll').addEventListener('click', () => {
+        if (!confirm('Reset everything (profile + log)?')) return;
+        localStorage.removeItem('bac.app.v1');
+        location.reload();
+      });
+    }
+
+    // ---------- Rendering ----------
+    function applyDisguise() {
+      const revealed = !!state.disguiseRevealed;
+      document.title = revealed ? 'BAC Tracker' : 'Daily Intake';
+      $('h1').textContent = revealed ? 'BAC Tracker' : 'Daily Intake';
+      $('#toggleDisguise').textContent = revealed ? 'Hide Details' : 'Reveal Details';
+      document.querySelectorAll('label').forEach(el => {
+        if (el.textContent.includes('Elimination') || el.textContent.includes('Sex') || el.textContent.includes('Widmark')) {
+          el.style.opacity = revealed ? 1 : 0.7;
+        }
+      });
+    }
+    function applyBlur() {
+      const blur = !!state.blur;
+      $('#bacText').classList.toggle('hidden', blur);
+    }
+    function renderDrinks() {
+      const list = $('#drinkList'); list.innerHTML = '';
+      const drinks = [...state.drinks].sort((a,b)=>a.t-b.t);
+      if (!drinks.length) {
+        list.innerHTML = `<div class="muted small">No intakes logged yet.</div>`;
+        return;
+      }
+      drinks.forEach(d => {
+        const when = new Date(d.t);
+        const timeStr = $('#clockPref').value === 'utc'
+          ? when.toISOString().replace('T',' ').slice(0,16) + 'Z'
+          : when.toLocaleString([], { hour12:false });
+        const el = document.createElement('div');
+        el.className = 'drink-item';
+        el.innerHTML = `
+          <div>
+            <div class="small"><strong>${Math.round(d.ml)} ml</strong> @ <strong>${fmt(d.abv,1)}%</strong></div>
+            <div class="muted small">${timeStr}</div>
+          </div>
+          <div class="row" style="gap:6px; width:auto;">
+            <span class="pill mono">${fmt(ethanolOz(d.ml, d.abv), 2)} oz EtOH</span>
+            <button class="btn-ghost" data-id="${d.id}" title="Delete" style="width:auto;">✕</button>
+          </div>
+        `;
+        el.querySelector('button').addEventListener('click', () => {
+          state.drinks = state.drinks.filter(x => x.id !== d.id);
+          store.save(state);
+          renderDrinks();
+          tick();
+        });
+        list.appendChild(el);
+      });
+    }
+
+    function setBadge(bac) {
+      const badge = $('#statusBadge');
+      badge.classList.remove('ok','warn','danger');
+      if (bac < 0.03) badge.classList.add('ok');
+      else if (bac < 0.08) badge.classList.add('warn');
+      else badge.classList.add('danger');
+    }
+
+    function renderStatus() {
+      const { bac, zeroEta } = computeBAC();
+      $('#bacText').textContent = fmt(bac, 3);
+      setBadge(bac);
+      $('#lastTick').textContent = new Date().toLocaleTimeString([], { hour12:false });
+      $('#etaZero').textContent = zeroEta ? zeroEta : '–';
+    }
+
+    // ---------- Core math ----------
+    function ethanolOz(ml, abvPct) {
+      // 0.789 g/ml density of ethanol, but Widmark expects ounces of ethanol. A simpler, common approach:
+      // ethanol_oz = fluid_oz * (abv / 100)
+      const fluidOz = toOz(ml);
+      return fluidOz * (abvPct / 100);
+    }
+    function getR() {
+      const sex = $('#sex').value;
+      if (sex === 'male') return 0.73;
+      if (sex === 'female') return 0.66;
+      return parseFloat($('#rCustom').value || '0.7');
+    }
+    function computeBAC() {
+      const w = parseFloat($('#weight').value || '75');
+      const units = $('#units').value;
+      const W_lb = toLb(w, units);
+      const r = getR();
+      const beta = clamp(parseFloat($('#elimRate').value || '0.015'), 0.005, 0.03);
+
+      const drinks = [...state.drinks];
+      if (!drinks.length || !W_lb || !r) return { bac: 0, zeroEta: null };
+
+      // Sum raw contribution at each drink time, apply elimination from each drink time to now
+      const now = Date.now();
+      let totalBAC = 0;
+      let totalEtOHoz = 0;
+
+      drinks.forEach(d => {
+        const A = ethanolOz(d.ml, d.abv); // ounces of ethanol
+        const hoursSince = Math.max(0, (now - d.t) / 3600000);
+        const peak = (A * 5.14) / (W_lb * r);
+        const remaining = Math.max(0, peak - beta * hoursSince);
+        totalBAC += remaining;
+        totalEtOHoz += A;
+      });
+
+      totalBAC = Math.max(0, totalBAC);
+
+      // Zero ETA (simple: current BAC / beta), assuming no new intake
+      let zeroEta = null;
+      if (totalBAC > 0) {
+        const hours = totalBAC / clamp(parseFloat($('#elimRate').value || '0.015'), 0.001, 1);
+        const eta = new Date(Date.now() + hours * 3600000);
+        zeroEta = $('#clockPref').value === 'utc'
+          ? eta.toISOString().replace('T',' ').slice(0,16) + 'Z'
+          : eta.toLocaleString([], { hour12:false });
+      }
+
+      return { bac: totalBAC, zeroEta, totalEtOHoz };
+    }
+
+    // ---------- Timer ----------
+    let timer = null;
+    function startTicker() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(tick, 1000);
+    }
+    function tick() {
+      renderStatus();
+    }
+
+    // ---------- Boot ----------
+    init();
+  </script>
+</body>
+</html>
