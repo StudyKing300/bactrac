@@ -289,20 +289,41 @@ $('#themeToggle').addEventListener('click',()=>{state.theme=state.theme==='light
 function ethanolOz(ml,abvPct){return toOz(ml)*(abvPct/100);}
 function getR(){const s=$('#sex').value; if(s==='male')return 0.73; if(s==='female')return 0.66; return parseFloat($('#rCustom').value||'0.7');}
 function bacAt(tMs){
-  const W_lb=toLb(parseFloat($('#weight').value||state.profile.weight), $('#units').value);
-  const r=getR(); const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.005,0.03);
-  if(!W_lb||!r||state.drinks.length===0) return 0;
-  let total=0;
-  for(const d of state.drinks){
-    if(tMs < d.t) continue; // no contribution before drink time
-    const A=ethanolOz(d.ml,d.abv);
-    const hours=(tMs-d.t)/3600000;
-    const peak=(A*5.14)/(W_lb*r);
-    const remaining=Math.max(0,peak-beta*Math.max(0,hours));
-    total+=remaining;
+  const W_lb = toLb(parseFloat($('#weight').value || state.profile.weight), $('#units').value);
+  const r = getR();
+  const beta = clamp(parseFloat($('#elimRate').value || state.profile.elimRate), 0.005, 0.03);
+  if (!W_lb || !r || state.drinks.length === 0) return 0;
+
+  // process drinks up to tMs in time order
+  const drinks = [...state.drinks]
+    .filter(d => d.t <= tMs)
+    .sort((a,b) => a.t - b.t);
+
+  if (!drinks.length) return 0;
+
+  let bac = 0;
+  let lastT = drinks[0].t;
+
+  for (const d of drinks) {
+    // decay from lastT to this drink time
+    const dt_h = Math.max(0, (d.t - lastT) / 3600000);
+    bac = Math.max(0, bac - beta * dt_h);
+
+    // add this drink's peak contribution
+    const A = toOz(d.ml) * (d.abv / 100);
+    const peak = (A * 5.14) / (W_lb * r);
+    bac += peak;
+
+    lastT = d.t;
   }
-  return Math.max(0,total);
+
+  // final decay from last drink to tMs
+  const dt_h_now = Math.max(0, (tMs - lastT) / 3600000);
+  bac = Math.max(0, bac - beta * dt_h_now);
+
+  return bac;
 }
+
 function zeroEtaFrom(nowMs,currentBAC){
   const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
   if(currentBAC<=0) return null;
