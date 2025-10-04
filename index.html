@@ -32,7 +32,7 @@
   @media(min-width:1040px){.grid{grid-template-columns:2fr 1fr}}
   .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.10)}
   .ticker{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:10px;gap:8px;flex-wrap:wrap}
-  .ticker .left{display:flex;gap:12px;align-items:center}
+  .ticker .left{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .symbol{font-weight:700;letter-spacing:.4px}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
   .muted{color:var(--muted)}
@@ -42,10 +42,8 @@
   .badge.danger{color:var(--neg);border-color:#47252a;background:rgba(255,107,107,.08)}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row>*{flex:1 1 140px}
-  .chart-wrap{position:relative;height:320px;background:var(--panel2);border:1px solid var(--border);border-radius:10px}
+  .chart-wrap{position:relative;height:clamp(220px,45vh,340px);background:var(--panel2);border:1px solid var(--border);border-radius:10px}
   canvas{display:block;width:100%;height:100%}
-  .legend{position:absolute;top:8px;left:8px;display:flex;gap:8px}
-  .legend .k{padding:4px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--border);font-size:12px}
   .split{display:grid;gap:12px}
   .label{font-size:12px;color:var(--muted);margin-bottom:6px}
   .submit{width:100%}
@@ -67,6 +65,16 @@
   .lvl{display:flex;align-items:center;gap:8px}
   .bar{height:8px;border-radius:6px;background:linear-gradient(90deg,rgba(90,162,255,.25),rgba(23,217,139,.25))}
   .tiny{font-size:11px}
+
+  /* Mobile fit */
+  html, body { overflow-x: hidden; }
+  @media (max-width: 600px) {
+    .ticker{gap:6px;padding:8px 10px}
+    .badge{padding:4px 8px}
+    .mono{font-size:12px}
+    .wrap{padding:12px}
+    .top-actions .btn{padding:8px 10px}
+  }
 </style>
 </head>
 <body>
@@ -94,10 +102,7 @@
       <div class="left">
         <div class="symbol">USD/EUR</div>
         <div id="priceBadge" class="badge ok"><span>Last:</span><span class="mono" id="lastBAC">0.000</span></div>
-        <div class="badge"><span>Proj. Zero:</span><span class="mono" id="etaZero">–</span></div>
-        <div class="badge"><span>24h High:</span><span class="mono" id="hi24">0.000</span></div>
-        <div class="badge"><span>24h Low:</span><span class="mono" id="lo24">0.000</span></div>
-        <div class="badge"><span>Updated:</span><span class="mono" id="lastTick">–</span></div>
+        <div class="badge"><span>Proj. Zero:</span><span class="mono" id="etaZero">--:--</span></div>
       </div>
       <div class="row" style="gap:10px;align-items:center;width:auto">
         <div class="badge"><span>Portfolio:</span><span class="mono" id="portfolio">$0.00</span></div>
@@ -110,10 +115,7 @@
       <div class="card">
         <div class="chart-wrap">
           <canvas id="chart"></canvas>
-          <div class="legend">
-            <div class="k">Spot</div>
-            <div class="k">Projection</div>
-          </div>
+          <!-- legend removed -->
         </div>
       </div>
 
@@ -222,10 +224,26 @@
       </div>
 
       <div class="card">
+        <h3 style="margin:0 0 8px 8px">Target Lines</h3>
+        <div class="row" id="targetsList" style="padding:8px"></div>
+        <div class="row" style="padding:8px; align-items:flex-end">
+          <div style="flex:0 0 120px">
+            <div class="label">Color</div>
+            <input type="color" id="targetColor" value="#ffb86b" />
+          </div>
+          <div>
+            <div class="label">Level</div>
+            <input type="number" id="targetLevel" step="0.001" min="0" placeholder="e.g. 0.080" />
+          </div>
+          <div style="flex:0 0 140px">
+            <button id="addTarget" class="btn">Add Line</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <h3 style="margin:0 0 8px 0">How it works</h3>
-        <p class="muted" style="font-size:14px">
-          Uses a standard elimination model under the hood. Settings page only.
-        </p>
+        <p class="muted" style="font-size:14px">Uses a standard elimination model under the hood.</p>
       </div>
     </div>
   </section>
@@ -240,15 +258,20 @@ const toOz=ml=>ml/29.5735;
 const clamp=(x,a,b)=>Math.min(Math.max(x,a),b);
 const fmt=(x,d=3)=>Number(x).toFixed(d);
 const money=(x)=> (x<0?'-':'')+'$'+Math.abs(x).toFixed(2);
+const timeOnly = (d)=> d.toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
-const storeKey='fx.app.v1';
+const storeKey='fx.app.v2';
 const store={load(){try{return JSON.parse(localStorage.getItem(storeKey)||'{}')}catch{return{}}},save(s){localStorage.setItem(storeKey,JSON.stringify(s))}};
 
 let state={
   profile:{weight:75,units:'kg',sex:'male',rCustom:0.70,elimRate:0.015,clockPref:'local'},
   drinks:[], // {t, ml, abv, id}
   theme:'dark',
-  sessionBase:null // base spot at session start for P&L
+  sessionBase:null, // base spot at session start for P&L
+  targets:[ // default target lines
+    {level:0.08, color:'#ffb86b'}, // orange
+    {level:0.15, color:'#ff6b6b'}  // red
+  ]
 };
 
 /* ===================== Navigation & Theme ===================== */
@@ -262,27 +285,24 @@ function applyTheme(){
 }
 $('#themeToggle').addEventListener('click',()=>{state.theme=state.theme==='light'?'dark':'light'; applyTheme(); store.save(state);});
 
-/* ===================== Core Math (hidden model) ===================== */
+/* ===================== Core Model ===================== */
 function ethanolOz(ml,abvPct){return toOz(ml)*(abvPct/100);}
 function getR(){const s=$('#sex').value; if(s==='male')return 0.73; if(s==='female')return 0.66; return parseFloat($('#rCustom').value||'0.7');}
 function bacAt(tMs){
-  const W_lb = toLb(parseFloat($('#weight').value || state.profile.weight), $('#units').value);
-  const r = getR();
-  const beta = clamp(parseFloat($('#elimRate').value || state.profile.elimRate), 0.005, 0.03);
-  if (!W_lb || !r || state.drinks.length === 0) return 0;
-
-  let total = 0;
-  for (const d of state.drinks) {
-    if (tMs < d.t) continue; // <-- key fix: no contribution before the drink happens
-    const A = toOz(d.ml) * (d.abv / 100);
-    const hoursSince = (tMs - d.t) / 3600000;
-    const peak = (A * 5.14) / (W_lb * r);
-    const remaining = Math.max(0, peak - beta * hoursSince);
-    total += remaining;
+  const W_lb=toLb(parseFloat($('#weight').value||state.profile.weight), $('#units').value);
+  const r=getR(); const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.005,0.03);
+  if(!W_lb||!r||state.drinks.length===0) return 0;
+  let total=0;
+  for(const d of state.drinks){
+    if(tMs < d.t) continue; // no contribution before drink time
+    const A=ethanolOz(d.ml,d.abv);
+    const hours=(tMs-d.t)/3600000;
+    const peak=(A*5.14)/(W_lb*r);
+    const remaining=Math.max(0,peak-beta*Math.max(0,hours));
+    total+=remaining;
   }
-  return Math.max(0, total);
+  return Math.max(0,total);
 }
-
 function zeroEtaFrom(nowMs,currentBAC){
   const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
   if(currentBAC<=0) return null;
@@ -296,53 +316,33 @@ function resizeCanvas(){const rect=canvas.getBoundingClientRect(); canvas.width=
 window.addEventListener('resize',()=>{resizeCanvas(); drawChart();});
 
 function buildSeries(){
-  const now = Date.now();
-  const drinks = [...state.drinks].sort((a,b)=>a.t-b.t);
+  const now=Date.now();
+  const drinks=[...state.drinks].sort((a,b)=>a.t-b.t);
 
-  // If no drinks, just show a flat zero at "now"
-  if (!drinks.length) {
-    const past = [[now, 0]];
-    return { past, future: [], earliest: now, end: now, spot: 0, eta: null };
+  if(!drinks.length){
+    const past=[[now,0]];
+    return {past,future:[],earliest:now,end:now,spot:0,eta:null};
   }
 
-  // START EXACTLY AT THE FIRST DRINK
-  const earliest = drinks[0].t;
+  const earliest=drinks[0].t; // start exactly at first order
+  const spot=bacAt(now);
+  const eta=zeroEtaFrom(now, spot);
+  const end=eta? eta.getTime() : now+2*3600000;
 
-  // Spot at "now"
-  const spot = bacAt(now);
+  const span=end-earliest;
+  const step= span<=24*3600000 ? 60000 : 300000;
 
-  // Project to zero from "now"
-  const eta = zeroEtaFrom(now, spot);
-  const end = eta ? eta.getTime() : now + 2*3600000;
+  const past=[], future=[];
+  for(let t=earliest;t<=now;t+=step) past.push([t, bacAt(t)]);
+  if(past.length===0 || past[past.length-1][0]!==now) past.push([now, spot]);
 
-  // Resolution: 1 min for <= 24h span; otherwise 5 min
-  const span = end - earliest;
-  const step = span <= 24*3600000 ? 60000 : 300000;
-
-  const past = [], future = [];
-
-  // Only compute from first drink time up to now
-  for (let t = earliest; t <= now; t += step) {
-    past.push([t, bacAt(t)]);
+  if(eta){
+    const beta=clamp(parseFloat($('#elimRate').value||state.profile.elimRate),0.001,1);
+    for(let t=now+step;t<=end;t+=step){const h=(t-now)/3600000; future.push([t, Math.max(0, spot-beta*h)]);}
+    future.push([end,0]);
   }
-  // Ensure an exact "now" point
-  if (past.length === 0 || past[past.length-1][0] !== now) {
-    past.push([now, spot]);
-  }
-
-  // Linear projection to zero (no new orders)
-  if (eta) {
-    const beta = clamp(parseFloat($('#elimRate').value || state.profile.elimRate), 0.001, 1);
-    for (let t = now + step; t <= end; t += step) {
-      const h = (t - now) / 3600000;
-      future.push([t, Math.max(0, spot - beta * h)]);
-    }
-    future.push([end, 0]);
-  }
-
-  return { past, future, earliest, end, spot, eta };
+  return {past,future,earliest,end,spot,eta};
 }
-
 
 function drawChart(){
   resizeCanvas();
@@ -353,7 +353,7 @@ function drawChart(){
   const all=data.future.length? data.past.concat(data.future): data.past;
   const xs=all.map(p=>p[0]); const ys=all.map(p=>p[1]);
   const minX=Math.min(...xs), maxX=Math.max(...xs);
-  const maxY=Math.max(0.08, ...ys, 0.001);
+  const maxY=Math.max(0.08, ...ys, ...(state.targets.map(t=>t.level)), 0.001);
   const padL=48*dpr, padR=16*dpr, padT=12*dpr, padB=28*dpr;
   const X=t=> padL + ((t-minX)/(maxX-minX||1))*(w-padL-padR);
   const Y=v=> (h-padB) - ((v/(maxY||1))*(h-padT-padB));
@@ -376,28 +376,35 @@ function drawChart(){
   const times=[minX, (minX+maxX)/2, maxX];
   times.forEach(t=>{const d=new Date(t); const label=$('#clockPref').value==='utc'? d.toISOString().slice(11,16)+'Z' : d.toLocaleTimeString([], {hour12:false,hour:'2-digit',minute:'2-digit'}); ctx.fillText(label, X(t), h-padB+6*dpr);});
 
+  // draw target lines (dotted)
+  state.targets.forEach(t=>{
+    const y=Y(t.level);
+    ctx.save();
+    ctx.strokeStyle=t.color;
+    ctx.setLineDash([6*dpr,6*dpr]);
+    ctx.lineWidth=1.5*dpr;
+    ctx.beginPath();
+    ctx.moveTo(padL, y); ctx.lineTo(w-padR, y);
+    ctx.stroke();
+    ctx.restore();
+  });
+
   // past line
   ctx.lineWidth=2*dpr; ctx.strokeStyle='#5aa2ff'; ctx.setLineDash([]); ctx.beginPath();
   data.past.forEach((p,i)=>{const x=X(p[0]), y=Y(p[1]); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
 
-  // projection
+  // projection (dashed)
   if(data.future.length){
     ctx.strokeStyle='#10d07a'; ctx.setLineDash([6*dpr,6*dpr]); ctx.beginPath();
     const last=data.past[data.past.length-1]; ctx.moveTo(X(last[0]), Y(last[1]));
     data.future.forEach(p=>ctx.lineTo(X(p[0]), Y(p[1]))); ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // threshold visual band (0.08)
+  // threshold visual band (0.08) – optional: keep very subtle
   const yThresh=Y(0.08); ctx.fillStyle='rgba(255,107,107,0.06)'; ctx.fillRect(padL,yThresh,w-padL-padR,(h-padB)-yThresh);
 
   // marker
   const last=data.past[data.past.length-1]; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(X(last[0]), Y(last[1]), 3.5*dpr, 0, Math.PI*2); ctx.fill();
-
-  // update 24h stats
-  const cutoff=Date.now()-24*3600000;
-  const within=all.filter(([t])=>t>=cutoff).map(([,y])=>y);
-  const hi=Math.max(...within,0); const lo=Math.min(...within,0);
-  $('#hi24').textContent=fmt(hi); $('#lo24').textContent=fmt(lo);
 }
 
 /* ===================== Orders / UI ===================== */
@@ -408,14 +415,14 @@ function renderOrders(){
   rows.forEach(d=>{
     const tr=document.createElement('tr');
     const when=new Date(d.t);
-    const timeStr=$('#clockPref').value==='utc'? when.toISOString().replace('T',' ').slice(0,16)+'Z' : when.toLocaleString([], {hour12:false});
+    const timeStr=$('#clockPref').value==='utc'? when.toISOString().slice(11,16)+'Z' : timeOnly(when);
     tr.innerHTML=`
       <td class="mono">${timeStr}</td>
       <td>${Number(d.ml).toFixed(1)}</td>
       <td>${Number(d.abv).toFixed(1)}</td>
       <td><button class="btn tiny" data-id="${d.id}" title="Cancel">✕</button></td>
     `;
-    tr.querySelector('button').addEventListener('click',()=>{state.drinks=state.drinks.filter(x=>x.id!==d.id); store.save(state); renderOrders(); tick(); drawChart();});
+    tr.querySelector('button').addEventListener('click',()=>{state.drinks=state.drinks.filter(x=>x.id!==d.id); store.save(state); renderOrders(); tick(); drawChart(); rebuildOrderBook();});
     tbody.appendChild(tr);
   });
 }
@@ -429,8 +436,12 @@ function setBadges(){
   if(price<0.03) pb.classList.add('ok'); else if(price<0.08) pb.classList.add('warn'); else pb.classList.add('danger');
 
   const eta=zeroEtaFrom(now, price);
-  $('#etaZero').textContent= eta ? ($('#clockPref').value==='utc' ? eta.toISOString().replace('T',' ').slice(0,16)+'Z' : eta.toLocaleString([], {hour12:false})) : '–';
-  $('#lastTick').textContent=new Date().toLocaleTimeString([], {hour12:false});
+  if(!eta){ $('#etaZero').textContent='--:--'; }
+  else{
+    $('#etaZero').textContent = $('#clockPref').value==='utc'
+      ? eta.toISOString().slice(11,19)+'Z'
+      : timeOnly(eta);
+  }
 
   // portfolio & PnL
   if(state.sessionBase==null) state.sessionBase=price;
@@ -439,7 +450,7 @@ function setBadges(){
   $('#portfolio').textContent=money(balance);
   $('#pnl').textContent=(pnl>=0?'+':'')+money(pnl).replace('-', '');
 
-  // fake market light (blinks when price>0 or odd seconds)
+  // market light
   const open = true;
   $('#mktLight').className='dot '+(open?'open':'closed');
   $('#mktText').textContent=open?'Open':'Closed';
@@ -468,18 +479,57 @@ function rebuildOrderBook(){
   }
 }
 
+/* ===================== Targets UI ===================== */
+function renderTargets(){
+  const list=$('#targetsList'); list.innerHTML='';
+  if(!state.targets.length){
+    list.innerHTML='<span class="tiny muted">No lines. Add a level and color.</span>';
+    return;
+  }
+  state.targets.forEach((t,idx)=>{
+    const chip=document.createElement('div');
+    chip.className='pill';
+    chip.style.display='inline-flex';
+    chip.style.alignItems='center';
+    chip.style.gap='8px';
+    chip.style.marginRight='6px';
+    chip.innerHTML=`
+      <span class="mono" style="display:inline-flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${t.color};display:inline-block;border:1px solid var(--border)"></span>
+        ${Number(t.level).toFixed(3)}
+      </span>
+      <button class="btn tiny" data-i="${idx}" style="padding:4px 6px">✕</button>
+    `;
+    chip.querySelector('button').addEventListener('click',()=>{
+      state.targets.splice(idx,1); store.save(state); renderTargets(); drawChart();
+    });
+    list.appendChild(chip);
+  });
+}
+$('#addTarget').addEventListener('click',()=>{
+  const level=parseFloat($('#targetLevel').value);
+  const color=$('#targetColor').value || '#ffb86b';
+  if(!isFinite(level) || level<0) return;
+  state.targets.push({level, color});
+  store.save(state);
+  $('#targetLevel').value='';
+  renderTargets(); drawChart();
+});
+
 /* ===================== Events ===================== */
 function wire(){
   // custom r visibility
   $('#sex').addEventListener('change',()=>{$('#rWrap').style.display=$('#sex').value==='custom'?'block':'none';});
 
-  // buy
+  // buy helper
   function place(ml,abv,t){
     if(!ml||!abv) return;
     state.drinks.push({t,ml,abv,id:crypto.randomUUID?crypto.randomUUID():String(Math.random())});
     store.save(state);
     renderOrders(); tick(); drawChart(); rebuildOrderBook(); blip();
   }
+
+  // buy button
   $('#buyBtn').addEventListener('click',()=>{
     const ml=parseFloat($('#amount').value||'0');
     const abv=clamp(parseFloat($('#lev').value||'0'),0,100);
@@ -535,7 +585,8 @@ function startTicker(){ if(timer) clearInterval(timer); timer=setInterval(()=>{t
 function hydrate(){
   const saved=store.load();
   state={...state, ...saved, profile:{...state.profile, ...(saved.profile||{})}};
-  // apply theme
+  if(!state.targets || !Array.isArray(state.targets)) state.targets=[{level:0.08,color:'#ffb86b'},{level:0.15,color:'#ff6b6b'}];
+
   applyTheme();
 
   // settings inputs
@@ -546,6 +597,9 @@ function hydrate(){
   $('#elimRate').value=state.profile.elimRate;
   $('#clockPref').value=state.profile.clockPref;
   $('#rWrap').style.display=$('#sex').value==='custom'?'block':'none';
+
+  // targets UI
+  renderTargets();
 
   // ticket defaults
   $('#orderTime').value=nowLocalISO();
